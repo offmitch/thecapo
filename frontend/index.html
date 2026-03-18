@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>The Capo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    
+  </head>
+  <body>
+
+    <!-- Three.js Background -->
+    <canvas id="bg"></canvas>
+
+    <div class="app">
+      <h1>The Capo</h1>
+      <p>Find music that matches your mood</p>
+
+      <input type="text" id="input" placeholder="Enter a song or mood" />
+      <button onclick="getRecommendation()">Search</button>
+
+      <div class="result" id="result"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
