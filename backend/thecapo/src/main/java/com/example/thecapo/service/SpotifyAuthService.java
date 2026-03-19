@@ -20,6 +20,7 @@ public class SpotifyAuthService {
 
     @Value("${spotify.client.secret}")
     private String CLIENT_SECRET;
+
     
     private String accessToken;
     private long expiryTime;
@@ -28,7 +29,9 @@ public class SpotifyAuthService {
         if (accessToken == null || System.currentTimeMillis() >= expiryTime) {
             fetchAccessToken();
         }
+        System.out.println("Spotify Access Token: " + accessToken);
         return accessToken;
+        
     }
 
     private void fetchAccessToken() {

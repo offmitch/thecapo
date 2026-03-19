@@ -6,9 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Map;
 import java.util.Random;
@@ -21,92 +23,121 @@ public class MusicService {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public Map<String, String> getSongRecommendation(String song) {
+    // -------------------------
+    // 🔍 GET TRACK ID
+    // -------------------------
+    private String getTrackId(String input) {
         try {
-            String encodedSong = URLEncoder.encode(song, "UTF-8");
+            String token = authService.getAccessToken();
 
-            // 1. Search for the song
-            String searchUrl = "https://api.spotify.com/v1/search?q=" + encodedSong + "&type=track&limit=1";
+            String[] parts = input.split("-");
+            String artist = parts.length > 1 ? parts[0].trim() : "";
+            String song = parts.length > 1 ? parts[1].trim() : input;
 
-            HttpURLConnection searchConn = (HttpURLConnection) new URI(searchUrl).toURL().openConnection();
-            searchConn.setRequestMethod("GET");
-            searchConn.setRequestProperty("Authorization", "Bearer " + authService.getAccessToken());
+            String query = "track:" + song + (artist.isEmpty() ? "" : " artist:" + artist);
+            String encodedQuery = URLEncoder.encode(query, "UTF-8");
 
-            BufferedReader searchReader = new BufferedReader(
-                    new InputStreamReader(searchConn.getInputStream())
-            );
+            String urlStr = "https://api.spotify.com/v1/search?q=" + encodedQuery + "&type=track&limit=1&market=CA";
 
-            String searchResponse = searchReader.lines().reduce("", (a, b) -> a + b);
+            HttpURLConnection conn = (HttpURLConnection) new URI(urlStr).toURL().openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + token);
 
-            JsonNode searchJson = mapper.readTree(searchResponse);
-            JsonNode items = searchJson.get("tracks").get("items");
+            InputStream stream = getStream(conn);
+            String response = readStream(stream);
 
-            if (items.isEmpty()) return fallback(song);
+            JsonNode json = mapper.readTree(response);
+            JsonNode items = json.path("tracks").path("items");
 
-            String trackId = items.get(0).get("id").asText();
+            if (items.isArray() && items.size() > 0) {
+                return items.get(0).path("id").asText();
+            }
 
-            // 2. Get recommendations
-            String recUrl = "https://api.spotify.com/v1/recommendations?seed_tracks=" + trackId + "&limit=10";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-            HttpURLConnection recConn = (HttpURLConnection) new URI(recUrl).toURL().openConnection();
-            recConn.setRequestMethod("GET");
-            recConn.setRequestProperty("Authorization", "Bearer " + authService.getAccessToken());
+        return null;
+    }
 
-            BufferedReader recReader = new BufferedReader(
-                    new InputStreamReader(recConn.getInputStream())
-            );
+    // -------------------------
+    // 🎵 SONG RECOMMENDATION
+    // -------------------------
+    public Map<String, String> getSongRecommendation(String input) {
+        try {
+            String token = authService.getAccessToken();
 
-            String recResponse = recReader.lines().reduce("", (a, b) -> a + b);
+            String trackId = "0wwPcA6wtMf6HUMpIRdeP7";
+            // getTrackId(input);
+            if (trackId == null) return fallback(input);
+            
+            System.out.println("Track ID for '" + input + "': " + trackId); // 🔥 debug
+            
+            String urlStr = "https://api.spotify.com/v1/recommendations?seed_tracks=" + trackId + "&limit=10&market=CA";
+            
+            System.out.println("FINAL URL: " + urlStr);
 
-            JsonNode recJson = mapper.readTree(recResponse);
-            JsonNode tracks = recJson.get("tracks");
+            URL url = new URI(urlStr).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-            int randomIndex = new Random().nextInt(tracks.size());
-            JsonNode track = tracks.get(randomIndex);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + token);
+
+            InputStream stream = getStream(conn);
+            String response = readStream(stream);
+
+            JsonNode json = mapper.readTree(response);
+            JsonNode tracks = json.path("tracks");
+
+            if (!tracks.isArray() || tracks.size() == 0) return fallback(input);
+
+            JsonNode track = tracks.get(new Random().nextInt(tracks.size()));
 
             return Map.of(
-                    "input", song,
-                    "title", track.get("name").asText(),
-                    "artist", track.get("artists").get(0).get("name").asText(),
-                    "link", track.get("external_urls").get("spotify").asText()
+                    "input", input,
+                    "title", track.path("name").asText(),
+                    "artist", track.path("artists").get(0).path("name").asText(),
+                    "link", track.path("external_urls").path("spotify").asText()
             );
 
         } catch (Exception e) {
             e.printStackTrace();
-            return fallback(song);
+            return fallback(input);
         }
     }
 
+    // -------------------------
+    // 🌌 MOOD RECOMMENDATION
+    // -------------------------
     public Map<String, String> getMoodRecommendation(String mood) {
-
-        String genre = mapMoodToGenre(mood);
-
         try {
-            String urlStr = "https://api.spotify.com/v1/recommendations?seed_genres=" + genre + "&limit=10";
+            String token = authService.getAccessToken();
+            String genre = mapMoodToGenre(mood);
 
-            HttpURLConnection conn = (HttpURLConnection) new URI(urlStr).toURL().openConnection();
+            String urlStr = "https://api.spotify.com/v1/recommendations?seed_genres=" + genre + "&limit=10&market=CA";
+
+            URL url = new URI(urlStr).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
             conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + authService.getAccessToken());
+            conn.setRequestProperty("Authorization", "Bearer " + token);
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream())
-            );
-
-            String response = reader.lines().reduce("", (a, b) -> a + b);
+            InputStream stream = getStream(conn);
+            String response = readStream(stream);
 
             JsonNode json = mapper.readTree(response);
-            JsonNode tracks = json.get("tracks");
+            JsonNode tracks = json.path("tracks");
 
-            if (tracks.isEmpty()) return fallback(mood);
+            if (!tracks.isArray() || tracks.size() == 0) return fallback(mood);
 
-            int randomIndex = new Random().nextInt(tracks.size());
-            JsonNode track = tracks.get(randomIndex);
+            JsonNode track = tracks.get(new Random().nextInt(tracks.size()));
 
             return Map.of(
                     "input", mood,
-                    "title", track.get("name").asText(),
-                    "artist", track.get("artists").get(0).get("name").asText(),
-                    "link", track.get("external_urls").get("spotify").asText()
+                    "title", track.path("name").asText(),
+                    "artist", track.path("artists").get(0).path("name").asText(),
+                    "link", track.path("external_urls").path("spotify").asText()
             );
 
         } catch (Exception e) {
@@ -114,6 +145,44 @@ public class MusicService {
             return fallback(mood);
         }
     }
+
+    // -------------------------
+    // 🧠 HELPERS
+    // -------------------------
+    private InputStream getStream(HttpURLConnection conn) throws Exception {
+    int status = conn.getResponseCode();
+
+    System.out.println("HTTP Status: " + status); // 🔥 debug
+
+    if (status >= 200 && status < 300) {
+        return conn.getInputStream();
+    } else {
+        InputStream errorStream = conn.getErrorStream();
+
+        if (errorStream == null) {
+            throw new RuntimeException("No response body. Status: " + status);
+        }
+
+        return errorStream;
+    }
+}
+
+    private String readStream(InputStream stream) throws Exception {
+    if (stream == null) {
+        throw new RuntimeException("Stream is null (no response body)");
+    }
+
+    BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
+    StringBuilder response = new StringBuilder();
+    String line;
+
+    while ((line = reader.readLine()) != null) {
+        response.append(line);
+    }
+    
+    System.out.println("Response: " + response); // 🔥 debug
+    return response.toString();
+}
 
     private String mapMoodToGenre(String mood) {
         mood = mood.toLowerCase();
