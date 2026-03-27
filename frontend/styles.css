@@ -2,7 +2,7 @@ html,
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
-  background: url("/frontend/images/background.jpg") no-repeat center center;
+  background: url("/images/background.jpg") no-repeat center center;
   background-size: cover;
   color: white;
   display: flex;
@@ -19,6 +19,11 @@ body::before {
     background: rgba(0, 0, 0, 0.4);
     z-index: 1;
     
+}
+
+em {
+  font-size: 0.8rem;
+  color: #cbd5f5;
 }
 
 .app {

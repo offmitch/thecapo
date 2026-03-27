@@ -29,7 +29,7 @@ public class SpotifyAuthService {
         if (accessToken == null || System.currentTimeMillis() >= expiryTime) {
             fetchAccessToken();
         }
-        System.out.println("Spotify Access Token: " + accessToken);
+        // System.out.println("Spotify Access Token: " + accessToken);
         return accessToken;
         
     }
