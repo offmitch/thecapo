@@ -1,27 +1,30 @@
+# Use Eclipse Temurin JDK 17
 FROM eclipse-temurin:17-jdk-jammy
 
+# Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and settings
+# Copy Maven wrapper and POM
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
 # Give execute permission to mvnw and pre-download dependencies
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+RUN chmod +x mvnw \
+    && ./mvnw dependency:go-offline -B
 
-# Copy source code
+# Copy the source code
 COPY src src
 
-# Build the app
+# Build the app (skip tests for faster build)
 RUN ./mvnw package -DskipTests
 
-# Expose port for Render
-ENV PORT 8080
+# Expose Render's dynamic port
+ENV PORT=10000
 EXPOSE $PORT
 
-# Make Spring Boot use Render's PORT variable
+# Pass the port to Spring Boot
 ENV JAVA_OPTS="-Dserver.port=$PORT"
 
-# Start the app
-CMD java $JAVA_OPTS -jar target/*.jar
+# Run the Spring Boot application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar target/*.jar"]
