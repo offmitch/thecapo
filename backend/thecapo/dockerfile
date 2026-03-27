@@ -1,31 +1,27 @@
-# Dockerfile for The Capo Spring Boot App
-
-# 1. Use Java 17 JDK base image
 FROM eclipse-temurin:17-jdk-jammy
 
-# 2. Set working directory inside container
 WORKDIR /app
 
-# 3. Copy Maven wrapper and settings first (for caching dependencies)
+# Copy Maven wrapper and settings
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 
-# 4. Pre-download dependencies (offline mode)
-RUN ./mvnw dependency:go-offline -B
+# Give execute permission to mvnw and pre-download dependencies
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
 
-# 5. Copy the source code
+# Copy source code
 COPY src src
 
-# 6. Build the app (skip tests for faster build)
+# Build the app
 RUN ./mvnw package -DskipTests
 
-# 7. Expose the port (Render sets PORT as environment variable)
+# Expose port for Render
 ENV PORT 8080
 EXPOSE $PORT
 
-# 8. Set Spring Boot to use Render's PORT variable
+# Make Spring Boot use Render's PORT variable
 ENV JAVA_OPTS="-Dserver.port=$PORT"
 
-# 9. Start the Spring Boot app
+# Start the app
 CMD java $JAVA_OPTS -jar target/*.jar
