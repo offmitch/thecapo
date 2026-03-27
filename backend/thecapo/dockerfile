@@ -1,0 +1,26 @@
+# Use a Java 17 base image
+FROM eclipse-temurin:17-jdk-jammy
+
+# Set working directory
+WORKDIR /app
+
+# Copy Maven wrapper and pom.xml first for caching
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
+
+# Download dependencies
+RUN ./mvnw dependency:go-offline -B
+
+# Copy project source
+COPY src src
+
+# Build the app
+RUN ./mvnw package -DskipTests
+
+# Expose port (Render will set PORT via env variable)
+ENV PORT 8080
+EXPOSE $PORT
+
+# Start the app
+CMD java -jar target/*.jar
