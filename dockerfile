@@ -1,24 +1,23 @@
-# Use a Java 17 base image
+# Use Java 17
 FROM eclipse-temurin:17-jdk-jammy
 
-# Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for caching
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+# Copy Maven wrapper and pom.xml from the nested folder
+COPY backend/thecapo/mvnw .
+COPY backend/thecapo/.mvn .mvn
+COPY backend/thecapo/pom.xml .
 
 # Download dependencies
 RUN ./mvnw dependency:go-offline -B
 
 # Copy project source
-COPY src src
+COPY backend/thecapo/src src
 
 # Build the app
 RUN ./mvnw package -DskipTests
 
-# Expose port (Render will set PORT via env variable)
+# Expose port
 ENV PORT 8080
 EXPOSE $PORT
 
