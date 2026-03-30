@@ -15,9 +15,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 @Service
 public class MusicService {
@@ -179,82 +182,190 @@ public class MusicService {
         }
     }
 
+    public List<Map<String, String>> getSongPoolFromArtist(String artistName) {
+        List<Map<String, String>> songPool = new ArrayList<>();
+
+        try {
+            String token = authService.getAccessToken();
+
+            // Step 1: Search for albums
+            String encodedArtist = URLEncoder.encode(artistName, "UTF-8");
+            String albumSearchUrl = "https://api.spotify.com/v1/search?q="
+                    + encodedArtist
+                    + "&type=album&limit=10&market=CA";
+
+            System.out.println("Fetching albums: " + albumSearchUrl);
+
+            HttpURLConnection conn = (HttpURLConnection) new URI(albumSearchUrl).toURL().openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + token);
+
+            String response = readStream(getStream(conn));
+            JsonNode json = mapper.readTree(response);
+            JsonNode albums = json.path("albums").path("items");
+
+            System.out.println("Albums found: " + albums.size());
+            Set<String> seenAlbums = new HashSet<>();
+            // Step 2: Loop through albums
+            for (JsonNode album : albums) {
+                String albumId = album.path("id").asText();
+                String albumName = album.path("name").asText();
+
+                if (seenAlbums.contains(albumId)) {
+                    continue;
+                }
+                seenAlbums.add(albumId);
+
+                System.out.println("---- Album: " + albumName + " ----");
+
+                // Step 3: Get tracks for each album
+                String tracksUrl = "https://api.spotify.com/v1/albums/"
+                        + albumId
+                        + "/tracks?limit=50";
+
+                HttpURLConnection trackConn = (HttpURLConnection) new URI(tracksUrl).toURL().openConnection();
+                trackConn.setRequestMethod("GET");
+                trackConn.setRequestProperty("Authorization", "Bearer " + token);
+
+                String trackResponse = readStream(getStream(trackConn));
+                JsonNode trackJson = mapper.readTree(trackResponse);
+                JsonNode tracks = trackJson.path("items");
+
+                // Step 4: Add tracks to pool
+                for (JsonNode t : tracks) {
+                    String title = t.path("name").asText();
+                    String artist = t.path("artists").get(0).path("name").asText();
+
+                    Map<String, String> song = Map.of(
+                            "title", title,
+                            "artist", artist,
+                            "album", albumName);
+
+                    songPool.add(song);
+                }
+            }
+
+            System.out.println("========== FINAL SONG POOL ==========");
+            System.out.println("Total songs collected: " + songPool.size());
+
+            return songPool;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
     private Map<String, String> getHiddenGemFromArtist(
             String artistName,
             int inputYear,
             String originalInput) {
+
+        getSongPoolFromArtist(artistName);
 
         try {
             String token = authService.getAccessToken();
 
             String query = artistName;
 
-            String encodedQuery = URLEncoder.encode(query, "UTF-8")
-                    .replace("+", "%20");
+            // String encodedQuery = URLEncoder.encode(query, "UTF-8")
+            // .replace("+", "%20");
 
-            String urlStr = "https://api.spotify.com/v1/search?q="
-                    + encodedQuery
-                    + "&type=track"
-                    + "&limit=10"
-                    + "&market=CA";
+            // String urlStr = "https://api.spotify.com/v1/search?q="
+            // + encodedQuery
+            // + "&type=track"
+            // + "&limit=10"
+            // + "&market=CA";
 
-            System.out.println("Query: " + query);
-            System.out.println("URL: " + urlStr);
+            // System.out.println("Query: " + query);
+            // System.out.println("URL: " + urlStr);
 
-            URL url = new URI(urlStr).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setUseCaches(false);
-            conn.setDoInput(true);
+            // URL url = new URI(urlStr).toURL();
+            // HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            // conn.setUseCaches(false);
+            // conn.setDoInput(true);
 
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Authorization", "Bearer " + token);
-            conn.setRequestProperty("Content-Type", "application/json");
+            // conn.setRequestMethod("GET");
+            // conn.setRequestProperty("Authorization", "Bearer " + token);
+            // conn.setRequestProperty("Content-Type", "application/json");
 
-            InputStream stream = getStream(conn);
-            String response = readStream(stream);
-            stream.close();
-            conn.disconnect();
+            // InputStream stream = getStream(conn);
+            // String response = readStream(stream);
+            // stream.close();
+            // conn.disconnect();
 
-            JsonNode json = mapper.readTree(response);
-            JsonNode items = json.path("tracks").path("items");
+            // JsonNode json = mapper.readTree(response);
+            // JsonNode items = json.path("tracks").path("items");\
 
-            if (!items.isArray() || items.size() == 0) {
+            List<Map<String, String>> items = getSongPoolFromArtist(artistName);
+
+            if (items.isEmpty()) {
                 System.out.println("No tracks found.");
                 return fallback(artistName);
             }
 
-            // ✅ Print all tracks
-            System.out.println("Tracks returned:");
-            for (JsonNode t : items) {
-                System.out.println("- " + t.path("name").asText());
-            }
+            // System.out.println("Tracks returned:");
+            // for (Map<String, String> t : items) {
+            //     System.out.println("- " + t.get("title") + " - " + t.get("artist"));
+            // }
 
             String inputTrackName = originalInput.toLowerCase();
 
-            List<JsonNode> candidates = new ArrayList<>();
-
-            // ✅ Filter: avoid original + keep similar year range
-            for (JsonNode t : items) {
-                String name = t.path("name").asText().toLowerCase();
-
-                if (name.equals(inputTrackName))
-                    continue;
-
-                String releaseDate = t.path("album").path("release_date").asText();
-                if (releaseDate.length() < 4)
-                    continue;
-
-                int year = Integer.parseInt(releaseDate.substring(0, 4));
-
-                if (year >= (inputYear - 2) && year <= (inputYear + 2)) {
-                    candidates.add(t);
-                }
+            // remove " - artist"
+            if (inputTrackName.contains(" - ")) {
+                inputTrackName = inputTrackName.split(" - ")[0];
             }
+
+            System.out.println("Cleaned input track name: " + inputTrackName);
+            System.out.println("========== FILTER DEBUG ==========");
+            System.out.println("Original input: " + originalInput);
+            System.out.println("Normalized input: " + inputTrackName);
+            System.out.println("Input year: " + inputYear);
+            System.out.println("=================================");
+
+            List<Map<String, String>> candidates = new ArrayList<>();
+
+            for (Map<String, String> t : items) {
+                String name = t.get("title");
+                String artist = t.get("artist");
+                String album = t.get("album");
+
+                String normalizedName = normalize(name);
+                String normalizedInput = normalize(inputTrackName);
+
+                
+
+                // ❌ exact match
+                if (normalizedName.equals(normalizedInput)) {
+                    System.out.println("---- Candidate ----");
+                System.out.println("Name: " + name);
+                System.out.println("Artist: " + artist);
+                    System.out.println("❌ Skipped (exact normalized match)");
+                    continue;
+                }
+
+                // ❌ partial match
+                if (normalizedName.contains(normalizedInput) || normalizedInput.contains(normalizedName)) {
+                    System.out.println("---- Candidate ----");
+                System.out.println("Name: " + name);
+                System.out.println("Artist: " + artist);
+                    System.out.println("❌ Skipped (partial normalized match)");
+                    continue;
+                }
+
+
+                candidates.add(t);
+            }
+
+            System.out.println("========== FINAL CANDIDATES SIZE ==========");
+            System.out.println("Number of candidates: " + candidates.size());
+
+            System.out.println("======================================");
 
             // ✅ Fallback if no year matches
             if (candidates.isEmpty()) {
-                for (JsonNode t : items) {
-                    String name = t.path("name").asText().toLowerCase();
+                for (Map<String, String> t : items) {
+                    String name = t.get("title").toLowerCase();
                     if (!name.equals(inputTrackName)) {
                         candidates.add(t);
                     }
@@ -263,15 +374,15 @@ public class MusicService {
 
             // ✅ Final fallback (very rare)
             if (candidates.isEmpty()) {
-                candidates.addAll((Collection<? extends JsonNode>) items);
+                candidates.addAll((Collection<? extends Map<String, String>>) items);
             }
 
             // ✅ Pick random
-            JsonNode selectedTrack = candidates.get(new Random().nextInt(candidates.size()));
+            Map<String, String> selectedTrack = candidates.get(new Random().nextInt(candidates.size()));
 
-            String title = selectedTrack.path("name").asText();
-            String artist = selectedTrack.path("artists").get(0).path("name").asText();
-            String link = selectedTrack.path("external_urls").path("spotify").asText();
+            String title = selectedTrack.get("title");
+            String artist = selectedTrack.get("artist");
+            
 
             System.out.println("Selected track:");
             System.out.println("Title: " + title);
@@ -280,8 +391,7 @@ public class MusicService {
             return Map.of(
                     "inputArtist", artistName,
                     "title", title,
-                    "artist", artist,
-                    "link", link);
+                    "artist", artist);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -341,14 +451,21 @@ public class MusicService {
 
             // Step 3: Call your hidden gem function
             Map<String, String> result = getHiddenGemFromArtist(artistName, year, input);
-            String title = result.get("title"); // use the correct key
-
+            String title = result.get("title");
             if (title == null) {
                 return Map.of("error", "No recommendation found");
             }
 
-            return Map.of("recommendation", title, "artist", result.get("artist"), "link", result.get("link"));
+            String artist = result.get("artist");
+            String recommendation = title + " - " + artist;
 
+            String imageUrl = getAlbumImage(title, artist);
+
+            return Map.of(
+                    "recommendation", recommendation,
+                    "title", title,
+                    "artist", artist,
+                    "imageUrl", imageUrl);
         } catch (Exception e) {
             System.out.println("ERROR:");
             e.printStackTrace();
@@ -386,9 +503,7 @@ public class MusicService {
             return Map.of(
                     "input", mood,
                     "title", track.path("name").asText(),
-                    "artist", track.path("artists").get(0).path("name").asText(),
-                    "link", track.path("external_urls").path("spotify").asText());
-
+                    "artist", track.path("artists").get(0).path("name").asText());
         } catch (Exception e) {
             e.printStackTrace();
             return fallback(mood);
@@ -451,7 +566,54 @@ public class MusicService {
         return Map.of(
                 "input", input,
                 "title", "Borderline",
-                "artist", "Tame Impala",
-                "link", "https://open.spotify.com");
+                "artist", "Tame Impala");
     }
+
+    private String normalize(String s) {
+        return s.toLowerCase()
+                .replaceAll("[^a-z0-9 ]", "") // remove punctuation (apostrophes, etc.)
+                .trim();
+    }
+
+    private String getAlbumImage(String title, String artist) {
+    try {
+        String token = authService.getAccessToken();
+
+        String query = URLEncoder.encode(title + " " + artist, "UTF-8");
+
+        String urlStr = "https://api.spotify.com/v1/search?q="
+                + query
+                + "&type=track&limit=1&market=CA";
+
+        HttpURLConnection conn = (HttpURLConnection) new URI(urlStr).toURL().openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Authorization", "Bearer " + token);
+
+        String response = readStream(getStream(conn));
+        JsonNode json = mapper.readTree(response);
+
+        JsonNode items = json.path("tracks").path("items");
+
+        if (!items.isArray() || items.size() == 0) {
+            return "";
+        }
+
+        JsonNode track = items.get(0);
+
+        JsonNode images = track.path("album").path("images");
+
+        if (!images.isArray() || images.size() == 0) {
+            return "";
+        }
+
+        // ✅ Get smallest image (last one is smallest in Spotify response)
+        JsonNode smallestImage = images.get(images.size() - 1);
+
+        return smallestImage.path("url").asText();
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "";
+    }
+}
 }

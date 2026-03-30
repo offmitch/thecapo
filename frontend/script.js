@@ -122,7 +122,7 @@ async function getRecommendation() {
     return;
   }
 
-  resultDiv.innerText = "Finding your vibe...";
+  resultDiv.innerHTML = "<p>Finding your vibe...</p>";
 
   try {
     const response = await fetch(
@@ -130,10 +130,21 @@ async function getRecommendation() {
     );
 
     const data = await response.json();
-
+    console.log("Response from server:", data);
     resultDiv.classList.add("show");
-    resultDiv.innerText =
-      data.recommendation || data.error || "No result found.";
+    if (data.error) {
+      resultDiv.innerText = data.error;
+      return;
+    }
+
+  resultDiv.innerHTML = `
+  <div class="song-result">
+    <img src="${data.imageUrl}" alt="Album cover" />
+    <div class="song-text">
+      ${data.recommendation}
+    </div>
+  </div>
+`;
   } catch (error) {
     resultDiv.innerText = "Error connecting to server.";
   }

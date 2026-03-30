@@ -196,6 +196,24 @@ canvas {
   z-index: 0;
 }
 
+.song-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center; 
+}
+
+.song-result img {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+}
+
+.song-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
 @media (max-width: 600px) {
 
   /* Fix viewport issues on mobile */
@@ -260,3 +278,4 @@ canvas {
     font-size: 16px;
   }
 }
+
