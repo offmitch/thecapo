@@ -16,6 +16,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class MusicService {
     @Autowired
     private SpotifyAuthService authService;
 
+    private Map<String, List<Map<String, String>>> artistCache = new HashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
 
     // -------------------------
@@ -184,6 +186,11 @@ public class MusicService {
 
     public List<Map<String, String>> getSongPoolFromArtist(String artistName) {
         List<Map<String, String>> songPool = new ArrayList<>();
+        
+        if (artistCache.containsKey(artistName)) {
+            System.out.println("Cache hit for artist: " + artistName);
+            return artistCache.get(artistName);
+        }
 
         try {
             String token = authService.getAccessToken();
@@ -192,7 +199,7 @@ public class MusicService {
             String encodedArtist = URLEncoder.encode(artistName, "UTF-8");
             String albumSearchUrl = "https://api.spotify.com/v1/search?q="
                     + encodedArtist
-                    + "&type=album&limit=10&market=CA";
+                    + "&type=album&limit=5&market=CA";
 
             System.out.println("Fetching albums: " + albumSearchUrl);
 
@@ -242,12 +249,15 @@ public class MusicService {
                             "album", albumName);
 
                     songPool.add(song);
+
                 }
+                 Thread.sleep(150);
             }
 
             System.out.println("========== FINAL SONG POOL ==========");
             System.out.println("Total songs collected: " + songPool.size());
-
+            artistCache.put(artistName, songPool);
+            
             return songPool;
 
         } catch (Exception e) {
@@ -514,21 +524,25 @@ public class MusicService {
     // 🧠 HELPERS
     // -------------------------
     private InputStream getStream(HttpURLConnection conn) throws Exception {
-        int status = conn.getResponseCode();
+    int status = conn.getResponseCode();
 
-        // System.out.println("HTTP Status: " + status);
+    if (status == 429) {
+        String retryAfter = conn.getHeaderField("Retry-After");
+        int waitTime = retryAfter != null ? Integer.parseInt(retryAfter) : 2;
 
-        if (status >= 200 && status < 300) {
-            return conn.getInputStream();
-        } else {
-            InputStream errorStream = conn.getErrorStream();
-            if (errorStream != null) {
-                String error = readStream(errorStream); // now allowed
-                System.out.println("Error Response: " + error);
-            }
-            throw new RuntimeException("HTTP Error: " + status);
-        }
+        System.out.println("⚠️ Rate limited. Waiting " + waitTime + " seconds...");
+        Thread.sleep(waitTime * 1000);
+
+        return getStream(conn); // retry
     }
+
+    if (status >= 200 && status < 300) {
+        return conn.getInputStream();
+    } else {
+        System.out.println("Error Response: " + conn.getResponseMessage());
+        throw new RuntimeException("HTTP Error: " + status);
+    }
+}
 
     private String readStream(InputStream stream) throws IOException {
         if (stream == null) {
