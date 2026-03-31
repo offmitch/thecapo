@@ -257,7 +257,7 @@ public class MusicService {
             System.out.println("========== FINAL SONG POOL ==========");
             System.out.println("Total songs collected: " + songPool.size());
             artistCache.put(artistName, songPool);
-            
+
             return songPool;
 
         } catch (Exception e) {
@@ -531,9 +531,9 @@ public class MusicService {
         int waitTime = retryAfter != null ? Integer.parseInt(retryAfter) : 2;
 
         System.out.println("⚠️ Rate limited. Waiting " + waitTime + " seconds...");
-        Thread.sleep(waitTime * 1000);
+        // Thread.sleep(waitTime * 1000);
 
-        return getStream(conn); // retry
+        // return getStream(conn);
     }
 
     if (status >= 200 && status < 300) {
