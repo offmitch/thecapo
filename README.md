@@ -2,6 +2,9 @@
 
 The Capo is a web app that recommends songs based on a user’s input. Enter a song or a mood, and The Capo will suggest a track that fits your vibe.  
 
+<a href="https://thecapo.onrender.com/" target="_blank">https://thecapo.onrender.com/</a>
+
+
 ## Features
 
 - Input a song or mood to get song recommendations  
