@@ -111,7 +111,6 @@ document.addEventListener("click", (e) => {
     dropdown.classList.remove("open");
   }
 });
-
 async function getRecommendation() {
   const input = document.getElementById("input").value;
   const type = selectedType;
@@ -124,28 +123,38 @@ async function getRecommendation() {
 
   resultDiv.innerHTML = "<p>Finding your vibe...</p>";
 
+  // Force UI update before fetch
+  await new Promise(requestAnimationFrame);
+
   try {
     const response = await fetch(
-      `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`,
+      `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
     );
+
+    if (!response.ok) {
+      throw new Error("Server error");
+    }
 
     const data = await response.json();
     console.log("Response from server:", data);
+
     resultDiv.classList.add("show");
+
     if (data.error) {
       resultDiv.innerText = data.error;
       return;
     }
 
-  resultDiv.innerHTML = `
-  <div class="song-result">
-    <img src="${data.imageUrl}" alt="Album cover" />
-    <div class="song-text">
-      ${data.recommendation}
-    </div>
-  </div>
-`;
+    resultDiv.innerHTML = `
+      <div class="song-result">
+        <img src="${data.imageUrl}" alt="Album cover" />
+        <div class="song-text">
+          ${data.recommendation}
+        </div>
+      </div>
+    `;
   } catch (error) {
+    console.error(error);
     resultDiv.innerText = "Error connecting to server.";
   }
 }
