@@ -124,7 +124,7 @@ async function getRecommendation() {
   resultDiv.innerHTML = "<p>Finding your vibe...</p>";
 
   // Force UI update before fetch
-  await new Promise(requestAnimationFrame);
+await new Promise(resolve => setTimeout(resolve, 50));
 
   try {
     const response = await fetch(
