@@ -111,6 +111,7 @@ document.addEventListener("click", (e) => {
     dropdown.classList.remove("open");
   }
 });
+
 async function getRecommendation() {
   const input = document.getElementById("input").value;
   const type = selectedType;
@@ -121,14 +122,16 @@ async function getRecommendation() {
     return;
   }
 
+  resultDiv.classList.add("show");
+  
   resultDiv.innerHTML = "<p>Finding your vibe...</p>";
 
-  // Force UI update before fetch
-await new Promise(resolve => setTimeout(resolve, 50));
+  resultDiv.offsetHeight;
 
   try {
     const response = await fetch(
-      `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
+      // `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
+      `http://localhost:8080/api/recommend?${type}=${encodeURIComponent(input)}`
     );
 
     if (!response.ok) {
@@ -138,7 +141,7 @@ await new Promise(resolve => setTimeout(resolve, 50));
     const data = await response.json();
     console.log("Response from server:", data);
 
-    resultDiv.classList.add("show");
+    
 
     if (data.error) {
       resultDiv.innerText = data.error;
