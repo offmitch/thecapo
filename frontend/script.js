@@ -124,7 +124,7 @@ async function getRecommendation() {
 
   resultDiv.classList.add("show");
   
-  resultDiv.innerHTML = "<p>Finding your vibe...</p>";
+  resultDiv.innerHTML = "<div class='spinner-wrap'> <div class='spinner'></div> <div class='spinner-label'>Finding your vibe...</div> </div>";
 
   resultDiv.offsetHeight;
 
