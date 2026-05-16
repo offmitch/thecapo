@@ -455,7 +455,7 @@ public class MusicService {
             // release_date can be "YYYY-MM-DD" or "YYYY"
             int year = Integer.parseInt(releaseDate.substring(0, 4));
 
-            System.out.println("Found track:");
+            System.out.println("Found track: " + track.path("name").asText());
             System.out.println("Artist: " + artistName);
             System.out.println("Release Year: " + year);
 
@@ -475,7 +475,8 @@ public class MusicService {
                     "recommendation", recommendation,
                     "title", title,
                     "artist", artist,
-                    "imageUrl", imageUrl);
+                    "imageUrl", imageUrl,
+                    "originaltrack", track.path("name").asText() + " - " + artistName);
         } catch (Exception e) {
             System.out.println("ERROR:");
             e.printStackTrace();
