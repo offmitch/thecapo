@@ -21,7 +21,9 @@ public class SpotifyAuthService {
     @Value("${spotify.client.secret}")
     private String CLIENT_SECRET;
 
-    
+    @Value("${last.fm.key}")
+    private String API_KEY;
+
     private String accessToken;
     private long expiryTime;
 
@@ -32,6 +34,10 @@ public class SpotifyAuthService {
         // System.out.println("Spotify Access Token: " + accessToken);
         return accessToken;
         
+    }
+
+    public String getApiKey() {
+        return API_KEY;
     }
 
     private void fetchAccessToken() {
