@@ -32,9 +32,11 @@ em {
   height: 100dvh;
   width: 100dvw;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
+
 
 /* Glass card */
 .card {
@@ -243,6 +245,53 @@ canvas {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.editors-pick {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.05);
+
+    width: 70%;
+    max-width: 900px;
+
+    padding: 10px 20px;
+    border-radius: 20px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap:  20px;
+
+    color: white;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.editors-pick h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.song-result {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.song-result img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.song-text {
+    font-size: .9rem;
+    color: #ddd;
 }
 
 
