@@ -543,7 +543,7 @@ public class MusicService {
                "recommendation", "Eventually - Tame Impala",
                     "title", "Eventually",
                     "artist", "Tame Impala",
-                    "imageUrl", "/frontend/images/currents.jpg",
+                    "imageUrl", "/images/currents.jpg",
                     "originaltrack", input);
     }
 
