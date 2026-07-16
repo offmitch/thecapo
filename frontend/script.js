@@ -144,7 +144,16 @@ async function getRecommendation() {
     
 
     if (data.error) {
-      resultDiv.innerText = data.error;
+       resultDiv.innerHTML = `
+       <em>${data.error}</em>
+       <br>
+      <div class="song-result">
+        <img src="${data.imageUrl}" alt="Album cover" />
+        <div class="song-text">
+          ${data.recommendation}
+        </div>
+      </div>
+    `;
       return;
     }
 

@@ -82,8 +82,10 @@ public class MusicService {
             // System.out.println("Artist: " + artistName);
             // System.out.println("Release Year: " + year);
 
-            
             String similarArtist = getSimilarArtist(artistName);
+            String[] tags = getTrackTag(track.path("name").asText(), artistName);
+
+            System.out.println("Tags found: " + String.join(", ", tags));
 
             System.out.println("Getting hidden gems for: " + similarArtist);
             // Step 3: Call your hidden gem function
@@ -111,68 +113,119 @@ public class MusicService {
         }
     }
 
-    
+    private String[] getTrackTag(String trackName, String artistName) {
+
+        String[] foundTags = new String[5];
+        String encodedTrackName = URLEncoder.encode(trackName, java.nio.charset.StandardCharsets.UTF_8);
+        String encodedArtistName = URLEncoder.encode(artistName, java.nio.charset.StandardCharsets.UTF_8);
+
+        try {
+
+            String apiKey = authService.getApiKey();
+
+            String urlStr = "http://ws.audioscrobbler.com/2.0/?method=track.gettoptags"
+                + "&api_key="
+                + apiKey
+                + "&artist="
+                + encodedArtistName
+                + "&track="
+                + encodedTrackName
+                + "&user=RJ&format=json";
+
+            System.out.println("Track Tag URL: " + urlStr);
+
+            URL url = new URI(urlStr).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+
+            InputStream stream = getStream(conn);
+            String response = readStream(stream);
+            stream.close();
+
+            JsonNode json = mapper.readTree(response);
+            JsonNode tags = json.path("toptags").path("tag");
+
+            ArrayList<String> newTags = new ArrayList<>();
+            for (JsonNode tag : tags) {
+                newTags.add(tag.path("name").asText());
+            }
+
+            for (int i = 0; i < 5 && i < newTags.size(); i++) {
+               foundTags[i] = newTags.get(i);
+            }
+
+            System.out.println("Found Tags: " + foundTags[0] + ", " + foundTags[1] + ", " + foundTags[2] + ", " + foundTags[3] + ", " + foundTags[4]);
+
+
+        }
+
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return foundTags;
+    }
+
     private String getSimilarArtist(String artistName) {
 
         String foundArtist = null;
         String encodedArtistName = URLEncoder.encode(artistName, java.nio.charset.StandardCharsets.UTF_8);
 
-        try{
+        try {
 
-        String apiKey = authService.getApiKey();
+            String apiKey = authService.getApiKey();
 
-        String urlStr = "http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist="
-        + encodedArtistName
-        + "&api_key="
-        + apiKey
-        + "&format=json";
+            String urlStr = "http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist="
+                    + encodedArtistName
+                    + "&api_key="
+                    + apiKey
+                    + "&format=json";
 
-        System.out.println("Similar Artist URL: " + urlStr);
+            System.out.println("Similar Artist URL: " + urlStr);
 
-        URL url = new URI(urlStr).toURL();
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Content-Type", "application/json");
-        conn.setRequestProperty("Accept", "application/json");
-        
-        InputStream stream = getStream(conn);
-        String response = readStream(stream);
-        stream.close();
+            URL url = new URI(urlStr).toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
 
-        JsonNode json = mapper.readTree(response);
-        JsonNode similarArtists = json.path("similarartists").path("artist");
+            InputStream stream = getStream(conn);
+            String response = readStream(stream);
+            stream.close();
 
-        ArrayList<String> artistNames = new ArrayList<>();
-        for (JsonNode artist : similarArtists) {
-            artistNames.add(artist.path("name").asText());
+            JsonNode json = mapper.readTree(response);
+            JsonNode similarArtists = json.path("similarartists").path("artist");
+
+            ArrayList<String> artistNames = new ArrayList<>();
+            for (JsonNode artist : similarArtists) {
+                artistNames.add(artist.path("name").asText());
+            }
+
+            System.out.println("OG Artist: " + artistName);
+            System.out.println("Similar artists found: " + artistNames);
+
+            Random rand = new Random();
+            if (!artistNames.isEmpty()) {
+                foundArtist = artistNames.get(rand.nextInt(artistNames.size()));
+                System.out.println("Random similar artist selected: " + foundArtist);
+            } else {
+                System.out.println("No similar artists found.");
+            }
+
         }
 
-        System.out.println("Similar artists found: " + artistNames);
-
-        Random rand = new Random();
-        if (!artistNames.isEmpty()) {
-            foundArtist = artistNames.get(rand.nextInt(artistNames.size()));
-            System.out.println("Random similar artist selected: " + foundArtist);
-        } else {
-            System.out.println("No similar artists found.");
-        }
-
-    }
-
-
-        catch(Exception e){
+        catch (Exception e) {
             e.printStackTrace();
         }
-
 
         return foundArtist;
     }
 
-
-
     public List<Map<String, String>> getSongPoolFromArtist(String artistName) {
         List<Map<String, String>> songPool = new ArrayList<>();
-        
+
         if (artistCache.containsKey(artistName)) {
             // System.out.println("Cache hit for artist: " + artistName);
             return artistCache.get(artistName);
@@ -237,7 +290,7 @@ public class MusicService {
                     songPool.add(song);
 
                 }
-                 Thread.sleep(150);
+                Thread.sleep(150);
             }
 
             // System.out.println("========== FINAL SONG POOL ==========");
@@ -251,7 +304,6 @@ public class MusicService {
             return Collections.emptyList();
         }
     }
-
 
     private Map<String, String> getHiddenGemFromArtist(
             String artistName,
@@ -303,7 +355,7 @@ public class MusicService {
 
             // System.out.println("Tracks returned:");
             // for (Map<String, String> t : items) {
-            //     System.out.println("- " + t.get("title") + " - " + t.get("artist"));
+            // System.out.println("- " + t.get("title") + " - " + t.get("artist"));
             // }
 
             String inputTrackName = originalInput.toLowerCase();
@@ -330,26 +382,23 @@ public class MusicService {
                 String normalizedName = normalize(name);
                 String normalizedInput = normalize(inputTrackName);
 
-                
-
                 // ❌ exact match
                 if (normalizedName.equals(normalizedInput)) {
-                //     System.out.println("---- Candidate ----");
-                // System.out.println("Name: " + name);
-                // System.out.println("Artist: " + artist);
-                //     System.out.println("❌ Skipped (exact normalized match)");
-                //     continue;
+                    // System.out.println("---- Candidate ----");
+                    // System.out.println("Name: " + name);
+                    // System.out.println("Artist: " + artist);
+                    // System.out.println("❌ Skipped (exact normalized match)");
+                    // continue;
                 }
 
                 // ❌ partial match
                 if (normalizedName.contains(normalizedInput) || normalizedInput.contains(normalizedName)) {
-                //     System.out.println("---- Candidate ----");
-                // System.out.println("Name: " + name);
-                // System.out.println("Artist: " + artist);
-                //     System.out.println("❌ Skipped (partial normalized match)");
+                    // System.out.println("---- Candidate ----");
+                    // System.out.println("Name: " + name);
+                    // System.out.println("Artist: " + artist);
+                    // System.out.println("❌ Skipped (partial normalized match)");
                     continue;
                 }
-
 
                 candidates.add(t);
             }
@@ -379,7 +428,6 @@ public class MusicService {
 
             String title = selectedTrack.get("title");
             String artist = selectedTrack.get("artist");
-            
 
             // System.out.println("Selected track:");
             // System.out.println("Title: " + title);
@@ -395,8 +443,6 @@ public class MusicService {
             return fallback(artistName);
         }
     }
-
-    
 
     // -------------------------
     // 🌌 MOOD RECOMMENDATION
@@ -439,25 +485,25 @@ public class MusicService {
     // 🧠 HELPERS
     // -------------------------
     private InputStream getStream(HttpURLConnection conn) throws Exception {
-    int status = conn.getResponseCode();
+        int status = conn.getResponseCode();
 
-    if (status == 429) {
-        String retryAfter = conn.getHeaderField("Retry-After");
-        int waitTime = retryAfter != null ? Integer.parseInt(retryAfter) : 2;
+        if (status == 429) {
+            String retryAfter = conn.getHeaderField("Retry-After");
+            int waitTime = retryAfter != null ? Integer.parseInt(retryAfter) : 2;
 
-        System.out.println("⚠️ Rate limited. Waiting " + waitTime + " seconds...");
-        // Thread.sleep(waitTime * 1000);
+            System.out.println("⚠️ Rate limited. Waiting " + waitTime + " seconds...");
+            // Thread.sleep(waitTime * 1000);
 
-        // return getStream(conn);
+            // return getStream(conn);
+        }
+
+        if (status >= 200 && status < 300) {
+            return conn.getInputStream();
+        } else {
+            System.out.println("Error Response: " + conn.getResponseMessage());
+            throw new RuntimeException("HTTP Error: " + status);
+        }
     }
-
-    if (status >= 200 && status < 300) {
-        return conn.getInputStream();
-    } else {
-        System.out.println("Error Response: " + conn.getResponseMessage());
-        throw new RuntimeException("HTTP Error: " + status);
-    }
-}
 
     private String readStream(InputStream stream) throws IOException {
         if (stream == null) {
@@ -493,9 +539,12 @@ public class MusicService {
 
     private Map<String, String> fallback(String input) {
         return Map.of(
-                "input", input,
-                "title", "Borderline",
-                "artist", "Tame Impala");
+            "error", "Unfortunately we cannot find any more recommendations at the moment but here is one from the editor, we hope you enjoy it!",
+               "recommendation", "Eventually - Tame Impala",
+                    "title", "Eventually",
+                    "artist", "Tame Impala",
+                    "imageUrl", "/frontend/images/currents.jpg",
+                    "originaltrack", input);
     }
 
     private String normalize(String s) {
@@ -505,44 +554,44 @@ public class MusicService {
     }
 
     private String getAlbumImage(String title, String artist) {
-    try {
-        String token = authService.getAccessToken();
+        try {
+            String token = authService.getAccessToken();
 
-        String query = URLEncoder.encode(title + " " + artist, "UTF-8");
+            String query = URLEncoder.encode(title + " " + artist, "UTF-8");
 
-        String urlStr = "https://api.spotify.com/v1/search?q="
-                + query
-                + "&type=track&limit=1&market=CA";
+            String urlStr = "https://api.spotify.com/v1/search?q="
+                    + query
+                    + "&type=track&limit=1&market=CA";
 
-        HttpURLConnection conn = (HttpURLConnection) new URI(urlStr).toURL().openConnection();
-        conn.setRequestMethod("GET");
-        conn.setRequestProperty("Authorization", "Bearer " + token);
+            HttpURLConnection conn = (HttpURLConnection) new URI(urlStr).toURL().openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + token);
 
-        String response = readStream(getStream(conn));
-        JsonNode json = mapper.readTree(response);
+            String response = readStream(getStream(conn));
+            JsonNode json = mapper.readTree(response);
 
-        JsonNode items = json.path("tracks").path("items");
+            JsonNode items = json.path("tracks").path("items");
 
-        if (!items.isArray() || items.size() == 0) {
+            if (!items.isArray() || items.size() == 0) {
+                return "";
+            }
+
+            JsonNode track = items.get(0);
+
+            JsonNode images = track.path("album").path("images");
+
+            if (!images.isArray() || images.size() == 0) {
+                return "";
+            }
+
+            // ✅ Get smallest image (last one is smallest in Spotify response)
+            JsonNode smallestImage = images.get(images.size() - 1);
+
+            return smallestImage.path("url").asText();
+
+        } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
-
-        JsonNode track = items.get(0);
-
-        JsonNode images = track.path("album").path("images");
-
-        if (!images.isArray() || images.size() == 0) {
-            return "";
-        }
-
-        // ✅ Get smallest image (last one is smallest in Spotify response)
-        JsonNode smallestImage = images.get(images.size() - 1);
-
-        return smallestImage.path("url").asText();
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        return "";
     }
-}
 }
