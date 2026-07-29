@@ -123,14 +123,16 @@ async function getRecommendation() {
   }
 
   resultDiv.classList.add("show");
-  
-  resultDiv.innerHTML = "<div class='spinner-wrap'> <div class='spinner'></div> <div class='spinner-label'>Finding your vibe...</div> </div>";
+
+  resultDiv.innerHTML =
+    "<div class='spinner-wrap'> <div class='spinner'></div> <div class='spinner-label'>Finding your vibe...</div> </div>";
 
   resultDiv.offsetHeight;
 
   try {
     const response = await fetch(
-      `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
+      `https://thecapo-production.up.railway.app/api/recommend?${type}=${input}`,
+      // `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
       // `http://localhost:8080/api/recommend?${type}=${encodeURIComponent(input)}`
     );
 
@@ -141,10 +143,8 @@ async function getRecommendation() {
     const data = await response.json();
     console.log("Response from server:", data);
 
-    
-
     if (data.error) {
-       resultDiv.innerHTML = `
+      resultDiv.innerHTML = `
        <em>${data.error}</em>
        <br>
       <div class="song-result">
