@@ -311,6 +311,7 @@ canvas {
     width: 100%;
     max-width: 250px;
     padding: 20px 15px;
+    margin-bottom: 4.5rem;
   }
 
   /* Title smaller */
@@ -358,5 +359,7 @@ canvas {
     margin-top: 15px;
     font-size: 16px;
   }
+
+
 }
 

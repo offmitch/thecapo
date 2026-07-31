@@ -5,59 +5,61 @@
     <title>The Capo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Honk:MORF@15&display=swap" rel="stylesheet">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Honk:MORF@15&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-
     <!-- Three.js Background -->
     <canvas id="bg"></canvas>
 
     <div class="app">
-   <div class="card">
-    <h1>The Capo</h1>
-    <p>Find the sound you're looking for ! 
-      <br>
-      Enter a song or mood for a recommendation.
-      <br>
-        <em>Note: Mood recommendations are not currently available. Sorry!</em>
-    </p>
+      <div class="card">
+        <h1>The Capo</h1>
+        <p>
+          Find the sound you're looking for !
+          <br />
+          Enter a song or mood for a recommendation.
+          <br />
+          <em
+            >Note: Mood recommendations are not currently available. Sorry!</em
+          >
+        </p>
 
-  <div class="search-bar">
+        <div class="search-bar">
+          <div class="dropdown" id="dropdown">
+            <div class="selected" id="selected">
+              Song <span class="arrow">▾</span>
+            </div>
+            <div class="options" id="options">
+              <div data-value="song">Song</div>
+              <div data-value="mood">Mood</div>
+            </div>
+          </div>
 
-   <div class="dropdown" id="dropdown">
-    <div class="selected" id="selected">Song <span class="arrow">▾</span>
-    </div>
-    <div class="options" id="options">
-      <div data-value="song">Song</div>
-      <div data-value="mood">Mood</div>
-    </div>
-  </div>
+          <input
+            type="text"
+            id="input"
+            placeholder="Which song should we match?"
+            onkeydown="if (event.key === 'Enter') getRecommendation();"
+          />
 
-  <input
-    type="text"
-    id="input"
-    placeholder="Which song should we match?"
-    onkeydown="if(event.key === 'Enter') getRecommendation()"
-  />
+          <button onclick="getRecommendation()">Search</button>
+        </div>
 
-  <button onclick="getRecommendation()">Search</button>
-</div>
-
-    <div class="result" id="result"></div>
-  </div>
-  <div class="editors-pick">
-    <h2>Editor's Monthly Pick:</h2>
-     <div class="song-result">
-        <img src="/images/white_trails.jpg" alt="Album cover" />
-        <div class="song-text">
-          Be Like a Women - Chris Rainbow
+        <div class="result" id="result"></div>
+      </div>
+      <div class="editors-pick">
+        <h2>Editor's Monthly Pick:</h2>
+        <div class="song-result">
+          <img src="/images/time.jpg" alt="Album cover" />
+          <div class="song-text">Time - Aaron Pasacreta</div>
         </div>
       </div>
-  </div>
-</div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.134/examples/js/loaders/GLTFLoader.js"></script>
