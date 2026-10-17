@@ -78,17 +78,18 @@ public class MusicService {
             // release_date can be "YYYY-MM-DD" or "YYYY"
             int year = Integer.parseInt(releaseDate.substring(0, 4));
 
-            // System.out.println("Found track: " + track.path("name").asText());
-            // System.out.println("Artist: " + artistName);
-            // System.out.println("Release Year: " + year);
+            System.out.println("Found track: " + track.path("name").asText());
+            System.out.println("Artist: " + artistName);
 
-            String similarArtist = getSimilarArtist(artistName);
+            System.out.println("\n=====Calling tag function=====");
             String[] tags = getTrackTag(track.path("name").asText(), artistName);
-
             System.out.println("Tags found: " + String.join(", ", tags));
+            System.out.println("\n=====Calling similar artist function=====");
+            String similarArtist = getSimilarArtist(artistName, tags);
+            System.out.println("Similar Artist: " + similarArtist);
 
-            System.out.println("Getting hidden gems for: " + similarArtist);
             // Step 3: Call your hidden gem function
+            System.out.println("\n=====Calling hidden gem function=====");
             Map<String, String> result = getHiddenGemFromArtist(similarArtist, year, input);
             String title = result.get("title");
             if (title == null) {
@@ -97,7 +98,7 @@ public class MusicService {
 
             String artist = result.get("artist");
             String recommendation = title + " - " + artist;
-
+            System.out.println("Recommendation: " + recommendation);
             String imageUrl = getAlbumImage(title, artist);
 
             return Map.of(
@@ -115,7 +116,7 @@ public class MusicService {
 
     private String[] getTrackTag(String trackName, String artistName) {
 
-        String[] foundTags = new String[5];
+        String[] foundTags = new String[0];
         String encodedTrackName = URLEncoder.encode(trackName, java.nio.charset.StandardCharsets.UTF_8);
         String encodedArtistName = URLEncoder.encode(artistName, java.nio.charset.StandardCharsets.UTF_8);
 
@@ -124,13 +125,13 @@ public class MusicService {
             String apiKey = authService.getApiKey();
 
             String urlStr = "http://ws.audioscrobbler.com/2.0/?method=track.gettoptags"
-                + "&api_key="
-                + apiKey
-                + "&artist="
-                + encodedArtistName
-                + "&track="
-                + encodedTrackName
-                + "&user=RJ&format=json";
+                    + "&api_key="
+                    + apiKey
+                    + "&artist="
+                    + encodedArtistName
+                    + "&track="
+                    + encodedTrackName
+                    + "&user=RJ&format=json";
 
             System.out.println("Track Tag URL: " + urlStr);
 
@@ -152,12 +153,10 @@ public class MusicService {
                 newTags.add(tag.path("name").asText());
             }
 
-            for (int i = 0; i < 5 && i < newTags.size(); i++) {
-               foundTags[i] = newTags.get(i);
+            foundTags = new String[newTags.size()];
+            for (int i = 0; i < newTags.size(); i++) {
+                foundTags[i] = newTags.get(i);
             }
-
-            System.out.println("Found Tags: " + foundTags[0] + ", " + foundTags[1] + ", " + foundTags[2] + ", " + foundTags[3] + ", " + foundTags[4]);
-
 
         }
 
@@ -168,20 +167,35 @@ public class MusicService {
         return foundTags;
     }
 
-    private String getSimilarArtist(String artistName) {
+    private String getSimilarArtist(String artistName, String[] tags) {
 
         String foundArtist = null;
         String encodedArtistName = URLEncoder.encode(artistName, java.nio.charset.StandardCharsets.UTF_8);
+        String encodedRandomTag = null;
+        String urlStr = null;
 
         try {
 
             String apiKey = authService.getApiKey();
 
-            String urlStr = "http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist="
-                    + encodedArtistName
-                    + "&api_key="
-                    + apiKey
-                    + "&format=json";
+            if (tags.length > 0) {
+                Random rand = new Random();
+                String randomTag = tags[rand.nextInt(tags.length)];
+                encodedRandomTag = URLEncoder.encode(randomTag, java.nio.charset.StandardCharsets.UTF_8);
+                urlStr = "http://ws.audioscrobbler.com/2.0/?method=tag.gettopartists&tag="
+                        + encodedRandomTag
+                        + "&api_key="
+                        + apiKey
+                        + "&format=json&limit=10";
+                System.out.println("Searching for similar artists using tag: " + randomTag);
+            } else {
+                System.out.println("No tags found, finding similar artists.");
+                urlStr = "http://ws.audioscrobbler.com/2.0/?method=artist.getsimilar&artist="
+                        + encodedArtistName
+                        + "&api_key="
+                        + apiKey
+                        + "&format=json&limit=10";
+            }
 
             System.out.println("Similar Artist URL: " + urlStr);
 
@@ -196,7 +210,12 @@ public class MusicService {
             stream.close();
 
             JsonNode json = mapper.readTree(response);
-            JsonNode similarArtists = json.path("similarartists").path("artist");
+            JsonNode similarArtists;
+            if (encodedRandomTag != null) {
+                similarArtists = json.path("topartists").path("artist");
+            } else {
+                similarArtists = json.path("similarartists").path("artist");
+            }
 
             ArrayList<String> artistNames = new ArrayList<>();
             for (JsonNode artist : similarArtists) {
@@ -227,7 +246,6 @@ public class MusicService {
         List<Map<String, String>> songPool = new ArrayList<>();
 
         if (artistCache.containsKey(artistName)) {
-            // System.out.println("Cache hit for artist: " + artistName);
             return artistCache.get(artistName);
         }
 
@@ -262,13 +280,12 @@ public class MusicService {
                 }
                 seenAlbums.add(albumId);
 
-                // System.out.println("---- Album: " + albumName + " ----");
+                System.out.println("---- Album: " + albumName + " ----");
 
                 // Step 3: Get tracks for each album
                 String tracksUrl = "https://api.spotify.com/v1/albums/"
                         + albumId
                         + "/tracks?limit=50";
-
                 HttpURLConnection trackConn = (HttpURLConnection) new URI(tracksUrl).toURL().openConnection();
                 trackConn.setRequestMethod("GET");
                 trackConn.setRequestProperty("Authorization", "Bearer " + token);
@@ -293,8 +310,8 @@ public class MusicService {
                 Thread.sleep(150);
             }
 
-            // System.out.println("========== FINAL SONG POOL ==========");
-            // System.out.println("Total songs collected: " + songPool.size());
+            System.out.println("========== FINAL SONG POOL ==========");
+            System.out.println("Total songs collected: " + songPool.size());
             artistCache.put(artistName, songPool);
 
             return songPool;
@@ -310,12 +327,12 @@ public class MusicService {
             int inputYear,
             String originalInput) {
 
-        getSongPoolFromArtist(artistName);
+        // getSongPoolFromArtist(artistName);
 
         try {
-            String token = authService.getAccessToken();
+            // String token = authService.getAccessToken();
 
-            String query = artistName;
+            // String query = artistName;
 
             // String encodedQuery = URLEncoder.encode(query, "UTF-8")
             // .replace("+", "%20");
@@ -444,9 +461,6 @@ public class MusicService {
         }
     }
 
-    // -------------------------
-    // 🌌 MOOD RECOMMENDATION
-    // -------------------------
     public Map<String, String> getMoodRecommendation(String mood) {
         try {
             String token = authService.getAccessToken();
@@ -539,12 +553,13 @@ public class MusicService {
 
     private Map<String, String> fallback(String input) {
         return Map.of(
-            "error", "Unfortunately we cannot find any more recommendations at the moment but here is one from the editor, we hope you enjoy it!",
-               "recommendation", "Eventually - Tame Impala",
-                    "title", "Eventually",
-                    "artist", "Tame Impala",
-                    "imageUrl", "/images/currents.jpg",
-                    "originaltrack", input);
+                "error",
+                "Unfortunately we cannot find any more recommendations at the moment but here is one from the editor, we hope you enjoy it!",
+                "recommendation", "Eventually - Tame Impala",
+                "title", "Eventually",
+                "artist", "Tame Impala",
+                "imageUrl", "/images/currents.jpg",
+                "originaltrack", input);
     }
 
     private String normalize(String s) {

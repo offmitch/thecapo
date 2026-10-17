@@ -131,8 +131,8 @@ async function getRecommendation() {
 
   try {
     const response = await fetch(
-      `https://thecapo-production.up.railway.app/api/recommend?${type}=${input}`,
-      // `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
+      // `https://thecapo-production.up.railway.app/api/recommend?${type}=${input}`,
+      `https://thecapo-backend.onrender.com/api/recommend?${type}=${input}`
       // `http://localhost:8080/api/recommend?${type}=${encodeURIComponent(input)}`
     );
 
