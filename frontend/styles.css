@@ -9,7 +9,7 @@ body {
   justify-content: center;
   align-items: center;
   height: 100dvh;
-  /* overflow: hidden; */
+  overflow: hidden;
 }
 
 body::before {
@@ -300,6 +300,8 @@ canvas {
   /* Fix viewport issues on mobile */
   html, body {
     height: 100%;
+    background: url("/images/background.jpg") repeat center center;
+
   }
 
   .app {
