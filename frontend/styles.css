@@ -8,8 +8,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* height: 100dvh; */
-  overflow: hidden;
+  height: 100dvh;
+  /* overflow: hidden; */
 }
 
 body::before {
@@ -29,7 +29,7 @@ em {
 .app {
   position: relative;
   z-index: 2;
-  /* height: 100dvh; */
+  height: 100dvh;
   width: 100dvw;
   display: flex;
   flex-direction: column;
