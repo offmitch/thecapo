@@ -13,9 +13,9 @@ The Capo is a web app that recommends songs based on a user’s input. Enter a s
 
 ## Tech Stack
 
-- Java  
+- Java (Spring Boot)
 - HTML, CSS, JavaScript  
-- Three.js  
+- Three.js 
 
 ## Notes
 
